@@ -31,9 +31,25 @@ const STATUS_META = {
   "Pending Review": { tone: "status-review" },
 };
 
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let h = 0; h < 24; h++) {
+    const ampm = h < 12 ? "AM" : "PM";
+    const display = h === 0 ? "12" : h <= 12 ? `${h}` : `${h - 12}`;
+    slots.push({ value: `${h.toString().padStart(2, "0")}:00`, label: `${display}:00 ${ampm}` });
+  }
+  return slots;
+};
+const TIME_SLOTS = generateTimeSlots();
+
+const getCurrentTimeSlot = () => {
+  const h = new Date().getHours();
+  return `${h.toString().padStart(2, "0")}:00`;
+};
+
 const defaultFormState = () => ({
   member: "",
-  hour: `${new Date().getHours().toString().padStart(2, "0")}:00`,
+  hour: getCurrentTimeSlot(),
   category: "",
   task: "",
   hours_spent: "1",
@@ -294,11 +310,16 @@ export default function DashboardApp() {
             <div className="field-row two-up">
               <label className="field">
                 <span>Hour slot</span>
-                <input
-                  type="time"
+                <select
                   value={form.hour}
                   onChange={(event) => updateForm("hour", event.target.value)}
-                />
+                >
+                  {TIME_SLOTS.map((slot) => (
+                    <option key={slot.value} value={slot.value}>
+                      {slot.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label className="field">
                 <span>Hours spent</span>
