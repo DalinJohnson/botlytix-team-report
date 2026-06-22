@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./dashboard.css";
 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxK2eSp0Qv0luX9OMXbkyIO6zrdwPY7shrzGCGPzC6HEcoDbP-TKW5S2IQvMMWcORvM7A/exec";
+
 const TEAM = [
   { name: "Ilayaraja", role: "BD / Operations", color: "#ff7a59" },
   { name: "Johnson", role: "Developer", color: "#11b3a3" },
@@ -68,17 +70,50 @@ export default function DashboardApp() {
   });
   const [form, setForm] = useState(defaultFormState);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
   const [filterMember, setFilterMember] = useState("All");
+  const [loadingReport, setLoadingReport] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("botlytix_reports", JSON.stringify(entries));
   }, [entries]);
 
+  // Report tab open → Google Sheets la irundhu fetch pannanum
+  useEffect(() => {
+    if (view === "report") {
+      setLoadingReport(true);
+      fetch(APPS_SCRIPT_URL)
+        .then((r) => r.json())
+        .then((rows) => {
+          if (rows.length > 1) {
+            const parsed = rows
+              .slice(1)
+              .map((r, i) => ({
+                submitted_at: r[0],
+                member: r[1],
+                hour: r[2],
+                category: r[3],
+                task: r[4],
+                hours_spent: r[5],
+                status: r[6],
+                blockers: r[7],
+                next_task: r[8],
+                id: "sheet_" + i,
+              }))
+              .reverse();
+            setEntries(parsed);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingReport(false));
+    }
+  }, [view]);
+
   const updateForm = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.member || !form.task || !form.category) return;
 
     const entry = {
@@ -87,7 +122,21 @@ export default function DashboardApp() {
       submitted_at: new Date().toISOString(),
     };
 
+    setSending(true);
+    try {
+      // Google Sheets ku POST pannanum
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+    } catch (err) {
+      console.error("Sheet save error:", err);
+    }
+
     setEntries((current) => [entry, ...current]);
+    setSending(false);
     setSubmitted(true);
 
     setTimeout(() => {
@@ -219,7 +268,7 @@ export default function DashboardApp() {
                 <p className="panel-label">Submit hourly update</p>
                 <h2>What did the team member finish this hour?</h2>
               </div>
-              <span className="pill neutral-pill">Stored in browser</span>
+              <span className="pill neutral-pill">Saves to Google Sheets ✅</span>
             </div>
 
             <div className="member-grid">
@@ -341,9 +390,9 @@ export default function DashboardApp() {
                 type="button"
                 className={`submit-button ${submitted ? "submit-success" : ""}`}
                 onClick={handleSubmit}
-                disabled={!form.member || !form.task || !form.category}
+                disabled={!form.member || !form.task || !form.category || sending}
               >
-                {submitted ? "Update saved" : "Submit report"}
+                {submitted ? "✅ Saved to Google Sheets!" : sending ? "⏳ Saving..." : "Submit report"}
               </button>
             </div>
           </section>
@@ -416,7 +465,7 @@ export default function DashboardApp() {
                 <h2>Productivity overview</h2>
               </div>
               <span className="pill neutral-pill">
-                {new Date().toLocaleDateString("en-IN", {
+                {loadingReport ? "⟳ Loading from Sheets..." : new Date().toLocaleDateString("en-IN", {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
