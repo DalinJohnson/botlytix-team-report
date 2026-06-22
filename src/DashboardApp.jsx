@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./dashboard.css";
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxK2eSp0Qv0luX9OMXbkyIO6zrdwPY7shrzGCGPzC6HEcoDbP-TKW5S2IQvMMWcORvM7A/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzf3sOTqwAyCt6Pt5IftnGuSKtJ0d4LIvK7qoPALj71r9jc73GQ-vsBeqrhj1S6FFn5dw/exec";
 
 const TEAM = [
   { name: "Ilayaraja", role: "BD / Operations", color: "#ff7a59" },
